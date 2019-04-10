@@ -33,33 +33,39 @@ namespace CoreonWebApi
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
 
-            services.AddSwaggerGen(c => c.SwaggerDoc("v1", new Info { Title = "CoreonWebApi", Description= "Coreon WebApi" }));
+            services.AddSwaggerGen(c => {
+                c.SwaggerDoc("v1", new Info { Title = "CoreonWebApi", Description = "Coreon WebApi" });
 
-            // services.AddDbContext<ApplicationDbContext>(options => options.UseApplicationServiceProvider)
+                var security = new Dictionary<string, IEnumerable<string>>
+                {
+                    {"Bearer", new string[] { }},
+                };
 
-            //services.AddIdentity<ApplicationIdentity, IdentityRole>().
-            //    AddEntityFrameworkStores<ApplicationDbContext>()
-            //    .AddDefaultTokenProviders();
+                c.AddSecurityDefinition("Bearer", new ApiKeyScheme
+                {
+                    Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+                    Name = "Authorization",
+                    In = "header",
+                    Type = "apiKey"
+                });
+
+                c.AddSecurityRequirement(security);
+            });
 
 
-            services.AddAuthentication(options =>
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
             {
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-            }).
-            AddJwtBearer(option =>
-            {
-                option.SaveToken = true;
-                option.RequireHttpsMetadata = false;
-                option.TokenValidationParameters = new TokenValidationParameters()
+                options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
                     ValidateAudience = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = "www.coreon.com.br",
+                    ValidAudience = "www.coreon.com.br",
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("CoreonSecurityKey"))
                 };
-
             });
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -81,9 +87,16 @@ namespace CoreonWebApi
 
             app.UseAuthentication();
 
+            var security = new Dictionary<string, IEnumerable<string>>
+                    {
+                        {"Bearer", new string[] { }},
+                    };
+
+
             app.UseSwaggerUI(
                 c => {
                     c.SwaggerEndpoint("/swagger/v1/swagger.json", "Coreon");
+
                 }
             );
         }
