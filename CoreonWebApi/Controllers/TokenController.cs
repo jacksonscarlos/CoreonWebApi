@@ -12,26 +12,28 @@ using Microsoft.IdentityModel.Tokens;
 using ControleAcessoService;
 using CoreonWebApi.Infra;
 using System.Text;
+using CoreonWebApi.ProviderJWT;
+using Microsoft.AspNetCore.Authorization;
+using CoreonWebApi.Data;
 
 namespace CoreonWebApi.Controllers
 {
-    [Route("api/[controller]")]
-    [ApiController]
-
     public class TokenController : Controller
     {
-        [HttpGet]
-        public IActionResult Get([Required] string usuario, [Required] string senha)
+        [Route("api/CreateToken")]
+        [AllowAnonymous]
+        [HttpPost]
+        [Produces("application/json")]
+
+        public IActionResult CreateToken([FromBody] Usuario user)
         {
-            if (Autenticado(usuario, senha))
-            {
-                return Ok(GravaToken(usuario));
-            }
+            if (Autenticado(user.Username, user.Password))
+                return Ok(TokenData.GravaToken(user.Username));
             else
                 return Unauthorized("Usuario não autenticado");
         }
 
-        private bool Autenticado (string usuario, string senha)
+        private bool Autenticado(string usuario, string senha)
         {
             ControleAcessoServiceClient servico = new ControleAcessoServiceClient();
 
@@ -52,22 +54,30 @@ namespace CoreonWebApi.Controllers
             }
         }
 
-        private string GravaToken(string usuario)
-        {
-
-            var clainsData = new[] { new Claim(ClaimTypes.Name, usuario) };
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("CoreonSecurityKey"));
-            var singInCred = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature);
-            var token = new JwtSecurityToken(
-            issuer: "www.coreon.com.br",
-            audience: "www.coreon.com.br",
-            expires: DateTime.Now.AddMinutes(10),
-            claims: clainsData,
-            signingCredentials: singInCred);
-
-            var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
-
-            return tokenString;
         }
-    }
+
+    //    public class TokenController : Controller
+    //{
+
+    //    [Route("api/CreateToken")]
+    //    [AllowAnonymous]
+    //    [HttpPost]
+    //    [Produces("application/json")]
+    //    public IActionResult CreateToken([FromBody] Usuario user)
+    //    {
+    //        if (user.Username != "valdir" || user.Password != "1234")
+    //            return Unauthorized();
+
+    //        var token = new TokenJWTBuilder()
+    //            .AddSecurityKey(ProviderJWT.JWTSecurityKey.Create("Secret_Key-12345678"))
+    //            .AddSubject("Valdir Ferreira")
+    //            .AddIssuer("Teste.Securiry.Bearer")
+    //            .AddAudience("Teste.Securiry.Bearer")
+    //            .AddClaim("UsuarioAPINumero", "1")
+    //            .AddExpiry(5)
+    //            .Builder();
+
+    //        return Ok(token.value);
+    //    }
+    //}
 }
